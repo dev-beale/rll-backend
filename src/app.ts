@@ -27,7 +27,13 @@ const app = express();
 app.use(cors());
 const port = 3000;
 
-app.get('/', (req, res) => {
+app.use(express.static(__dirname + '/dist/rll-frontend'));
+
+app.get('/', function(req, res){
+  res.sendFile(__dirname + '/dist/rll-frontend/index.html')
+})
+
+app.get('/helloworld', (req, res) => {
   res.send('Hello World!');
 });
 
