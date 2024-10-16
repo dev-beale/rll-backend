@@ -118,7 +118,7 @@ endpointsRouter.get('/getFiveOfLeastRecalledWords',(req, res) => {
 });
 
 endpointsRouter.post('/startConversationWithFiveLeastRecalledWords', async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.body.userId;
   con.query(`SELECT 
     russian_english.russian,
     word_usage_stats.russian_english_id, 
