@@ -2,6 +2,18 @@ import { Router } from "express";
 import {con } from "./db";
 import { rllPassport } from "./authentication";
 import { postToOpenAI } from "./open-ai";
+
+import multer, {Multer} from "multer";
+import { uploadToS3 } from "./aws-s3";
+
+const upload = multer({
+  dest: './uploads/', // storage directory
+  limits: { fileSize: 100000000 }, // 1MB file size limit
+  fileFilter: (req, file, cb) => {
+      return cb(null, true);
+  }
+});
+
 const endpointsRouter = Router();
 
 endpointsRouter.post('/login', rllPassport.authenticate('local', {
@@ -162,5 +174,18 @@ endpointsRouter.post('/continueConversation', async (req, res) => {
       res.send(error);
     }
 });
+
+endpointsRouter.post('/upload', upload.single('file'), (req, res) => {
+    // Handle uploaded file
+    console.log(`File uploaded: ${req.file?.originalname}`);
+    console.log(req.file?.size);
+    if(req.file?.filename){
+      uploadToS3(req.file?.filename);
+      res.send(`File uploaded successfully!`);
+    }
+    
+    
+});
+
 
 export {endpointsRouter as endpoints}
