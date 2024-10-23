@@ -180,7 +180,7 @@ endpointsRouter.post('/upload', upload.single('file'), (req, res) => {
     console.log(`File uploaded: ${req.file?.originalname}`);
     console.log(req.file?.size);
     if(req.file?.filename){
-      uploadToS3(req.file?.filename);
+      uploadToS3(req.file?.path);
       res.send(`File uploaded successfully!`);
     }
     
