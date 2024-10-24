@@ -183,7 +183,7 @@ endpointsRouter.post('/upload', upload.single('file'), async (req, res) => {
     if(req.file?.filename){
       try {
         const s3putResult : PutObjectCommandOutput = await uploadToS3('./uploads/' + req.file.filename);
-        res.send(`File uploaded successfully: ${s3putResult.$metadata}`);
+        res.send(`File uploaded successfully: ${JSON.stringify(s3putResult.$metadata)}`);
       } catch(error) {
         res.send(`File upload failed: ${error}`)
       }
