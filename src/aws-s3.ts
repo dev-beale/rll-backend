@@ -28,7 +28,7 @@ export function uploadToS3(file : string,){
                 TranscriptionJobName: `rll-transcription-${Date.now().toString()}`, /* required */
                 IdentifyLanguage: true,
                 IdentifyMultipleLanguages: true,
-                MediaFormat: "mp3",
+                MediaFormat: "mp3 | mp4 | wav | flac | ogg | amr | webm | m4a",
                 OutputBucketName: 'gurneysbucket',
                 OutputKey: 'rll-transcription',
               };
