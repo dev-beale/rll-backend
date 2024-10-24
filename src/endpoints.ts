@@ -5,6 +5,7 @@ import { postToOpenAI } from "./open-ai";
 
 import multer, {Multer} from "multer";
 import { uploadToS3 } from "./aws-s3";
+import { PutObjectCommandOutput } from "@aws-sdk/client-s3";
 
 const upload = multer({
   dest: './uploads/', // storage directory
@@ -175,13 +176,17 @@ endpointsRouter.post('/continueConversation', async (req, res) => {
     }
 });
 
-endpointsRouter.post('/upload', upload.single('file'), (req, res) => {
+endpointsRouter.post('/upload', upload.single('file'), async (req, res) => {
     // Handle uploaded file
     console.log(`File uploaded: ${req.file?.originalname}`);
     console.log(req.file?.size);
     if(req.file?.filename){
-      uploadToS3(req.file?.path);
-      res.send(`File uploaded successfully!`);
+      try {
+        const s3putResult : PutObjectCommandOutput = await uploadToS3(req.file.filename);
+        res.send(`File uploaded successfully: ${s3putResult.$metadata}`);
+      } catch(error) {
+        res.send(`File upload failed: ${error}`)
+      }
     }
     
     

@@ -1,46 +1,32 @@
 import AWS from "aws-sdk";
+import {
+    S3Client,
+    PutObjectCommand,
+    PutObjectCommandOutput,
+  } from "@aws-sdk/client-s3";
 import fs from 'fs';
   
-export function uploadToS3(file : string,){
-    const s3 = new AWS.S3({ apiVersion: "2006-03-01" });
+export async function uploadToS3(file : string,) : Promise<PutObjectCommandOutput>{
+    const s3 = new AWS.S3();
     
+    const s3Client = new S3Client();
     var fileStream = fs.createReadStream(file);
     fileStream.on("error", function (err: any) {
         console.log("File Error", err);
     });
-    var uploadParams = { Bucket: "gurneysbucket", Key: "", Body : fileStream };
-    var path = require("path");
-    uploadParams.Key = path.basename(file);
 
-    // call S3 to retrieve upload file to specified bucket
-    s3.upload(uploadParams, function (err: any, data: { Location: any; }) {
-        if (err) {
-            console.log("Error", err);
-        }
-        if (data) {
-            console.log("Upload Success", data.Location);
-            const transcribeService = new AWS.TranscribeService({apiVersion : '2017-10-26'})
+    const currentTime = Date.now().toString();
 
-            var params = {
-                Media: { /* required */
-                  MediaFileUri: data.Location,
-                },
-                TranscriptionJobName: `rll-transcription-${Date.now().toString()}`, /* required */
-                IdentifyLanguage: true,
-                IdentifyMultipleLanguages: true,
-                MediaFormat: "mp3 | mp4 | wav | flac | ogg | amr | webm | m4a",
-                OutputBucketName: 'gurneysbucket',
-                OutputKey: 'rll-transcription',
-              };
+    const bucketName = "gurneysbucket";
+    const key = `user-uploaded-${currentTime}`;
 
-            transcribeService.startTranscriptionJob(params, function(err, data) {
-                if (err) {
-                    console.log(err, err.stack);
-                } // an error occurred
-                else {
-                    console.log(data);
-                }           // successful response
-            });
-        }
-    });
+    const s3PutResult : PutObjectCommandOutput = await s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Body: fileStream,
+          Key: key,
+        }),
+    );
+
+    return s3PutResult;
 }
