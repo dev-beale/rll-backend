@@ -1,4 +1,3 @@
-import AWS from "aws-sdk";
 import {
     S3Client,
     PutObjectCommand,
@@ -7,7 +6,7 @@ import {
 import fs from 'fs';
   
 export async function uploadToS3(file : string,) : Promise<PutObjectCommandOutput>{
-    const s3Client = new S3Client();
+    const s3Client = new S3Client({region : 'us-east-1'});
     var fileStream = fs.createReadStream(file);
     fileStream.on("error", function (err: any) {
         console.log("File Error", err);
