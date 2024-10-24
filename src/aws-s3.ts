@@ -19,6 +19,28 @@ export function uploadToS3(file : string,){
         }
         if (data) {
             console.log("Upload Success", data.Location);
+            const transcribeService = new AWS.TranscribeService({apiVersion : '2017-10-26'})
+
+            var params = {
+                Media: { /* required */
+                  MediaFileUri: data.Location,
+                },
+                TranscriptionJobName: `rll-transcription-${Date.now().toString()}`, /* required */
+                IdentifyLanguage: true,
+                IdentifyMultipleLanguages: true,
+                MediaFormat: "mp3",
+                OutputBucketName: 'gurneysbucket',
+                OutputKey: 'rll-transcription',
+              };
+
+            transcribeService.startTranscriptionJob(params, function(err, data) {
+                if (err) {
+                    console.log(err, err.stack);
+                } // an error occurred
+                else {
+                    console.log(data);
+                }           // successful response
+            });
         }
     });
 }
