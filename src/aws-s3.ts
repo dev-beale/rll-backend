@@ -7,8 +7,6 @@ import {
 import fs from 'fs';
   
 export async function uploadToS3(file : string,) : Promise<PutObjectCommandOutput>{
-    const s3 = new AWS.S3();
-    
     const s3Client = new S3Client();
     var fileStream = fs.createReadStream(file);
     fileStream.on("error", function (err: any) {
