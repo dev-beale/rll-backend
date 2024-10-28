@@ -2,6 +2,20 @@ import { Router } from "express";
 import {con } from "./db";
 import { rllPassport } from "./authentication";
 import { postToOpenAI } from "./open-ai";
+
+import multer from "multer";
+import { uploadToS3 } from "./aws-s3";
+import { S3UploadResult, TranscriptionJobResult } from "./interfaces";
+import { submitTranscriptionJob } from "./aws-transcribe";
+
+const upload = multer({
+  dest: './uploads/', // storage directory
+  limits: { fileSize: 100000000 }, // 1MB file size limit
+  fileFilter: (req, file, cb) => {
+      return cb(null, true);
+  }
+});
+
 const endpointsRouter = Router();
 
 endpointsRouter.post('/login', rllPassport.authenticate('local', {
@@ -118,7 +132,7 @@ endpointsRouter.get('/getFiveOfLeastRecalledWords',(req, res) => {
 });
 
 endpointsRouter.post('/startConversationWithFiveLeastRecalledWords', async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.body.userId;
   con.query(`SELECT 
     russian_english.russian,
     word_usage_stats.russian_english_id, 
@@ -160,6 +174,27 @@ endpointsRouter.post('/continueConversation', async (req, res) => {
       res.send(response?.data);
     } catch (error) {
       res.send(error);
+    }
+});
+
+endpointsRouter.post('/upload', upload.single('file'), async (req, res) => {
+    // Handle uploaded file
+    console.log(`File uploaded: ${req.file?.originalname}`);
+    console.log(req.file?.size);
+    if(req.file?.filename){
+      try {
+        const s3UploadResult : S3UploadResult = await uploadToS3('./uploads/' + req.file.filename);
+        if(!s3UploadResult.success){
+          throw Error("S3 Upload Failed");
+        }
+        const transcriptionJobResult : TranscriptionJobResult = await submitTranscriptionJob(s3UploadResult.dataLocation);
+        if(!transcriptionJobResult.success){
+          throw Error("Transcribe Job Failed")
+        }
+        res.send(`Transcription job submitted successfully: ${JSON.stringify(transcriptionJobResult)}`);
+      } catch(error) {
+        res.send(`File upload failed: ${error}`)
+      }
     }
 });
 

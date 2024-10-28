@@ -1,9 +1,10 @@
 import express from 'express';
-import {closeConnection, con} from './db.ts'
+import {closeConnection} from './db.ts'
 var cors = require('cors')
 
 import {rllPassport} from './authentication.ts'
 import {endpoints} from './endpoints.ts'
+import { streamingRouter } from './streaming.ts';
 
 const session = require('express-session')
 const bodyParser = require('body-parser');
@@ -20,7 +21,10 @@ app.use(rllPassport.session())
 
 app.use(cors());
 
+const expressWs = require('express-ws')(app);
+app.use('/ws', streamingRouter);
 app.use('/', endpoints);
+
 
 const port = 3000;
 
