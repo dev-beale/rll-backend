@@ -5,6 +5,7 @@ var cors = require('cors')
 import {rllPassport} from './authentication.ts'
 import {endpoints} from './endpoints.ts'
 import { streamingRouter } from './streaming.ts';
+import { StartStreamTranscriptionCommand, StartStreamTranscriptionResponse, TranscribeStreamingClient, TranscriptEvent } from '@aws-sdk/client-transcribe-streaming';
 
 const session = require('express-session')
 const bodyParser = require('body-parser');
@@ -62,19 +63,68 @@ let wss = new WSServer({
   server: server
 });
 
+const { PassThrough } = require('stream');
+
 // Also mount the app here
 server.on('request', app);
 
 wss.on('connection', function connection(ws : any) {
- 
+  const memoryStream = new PassThrough();
+  
+  const audioSource = memoryStream; //Incoming message
+  
+  const audioStream = async function* () {
+    for await (const payloadChunk of audioSource) {
+      yield { AudioEvent: { AudioChunk: payloadChunk } };
+    }
+  };
+
+  const command = new StartStreamTranscriptionCommand({
+    // The language code for the input audio. Valid values include en-GB, en-US, es-US, fr-CA, and fr-FR
+    LanguageCode: "ru-RU",
+    // The encoding used for the input audio. The only valid value is pcm.
+    MediaEncoding: "pcm",
+    // The sample rate of the input audio in Hertz. We suggest that you use 8000 Hz for low-quality audio and 16000 Hz for
+    // high-quality audio. The sample rate must match the sample rate in the audio file.
+    MediaSampleRateHertz: 48000,
+    AudioStream: audioStream(),
+  });
+
+  const client = new TranscribeStreamingClient({
+    region : 'us-east-1'
+  });
+
+  client.send(command).then(async (response :StartStreamTranscriptionResponse ) => {
+    if(!response.TranscriptResultStream){
+      throw Error('StartStreamTranscriptionResponse returned no stream');
+    }
+    for await (const event of response.TranscriptResultStream) {
+      if (event.TranscriptEvent) {
+        const message : TranscriptEvent = event.TranscriptEvent;
+        // Get multiple possible results
+        const results = message?.Transcript?.Results;
+        // Print all the possible transcripts
+        if(!results){
+          throw Error('No results');
+        }
+        results.map((result) => {
+          (result.Alternatives || []).map((alternative) => {
+            if(!alternative || !alternative.Items){
+              throw Error('No alternative or alternative.Items');
+            }
+            const transcript = alternative.Items.map((item) => item.Content).join(" ");
+            console.log(transcript);
+          });
+        });
+      }
+    }
+  });
+
   ws.on('message', function incoming(message : any) {
-    
+    memoryStream.write(message);
     console.log(`received: ${message}`);
     
-    ws.send(JSON.stringify({
-
-      answer: 42
-    }));
+    ws.send(message);
   });
 });
 

@@ -8,7 +8,9 @@ export var con : mysql.Connection = mysql.createConnection({
 });
 
 con.connect(function(err: any) {
-    if (err) throw err;
+    if (err) {
+      console.error(err);
+    }
     console.log("Connected!");
 });
 
